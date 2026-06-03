@@ -37,4 +37,4 @@ The statistical output was translated into two main strategic levers for a winer
 4. Run `main_analysis.R` to reproduce the models and visual outputs.
 
 ---
-*Author: Antoine Peluso* *MSc in Management Engineering*
+*Author: Antoine Peluso* *MSc in AI*
