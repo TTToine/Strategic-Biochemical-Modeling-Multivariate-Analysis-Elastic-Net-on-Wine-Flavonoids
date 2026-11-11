@@ -1,40 +1,82 @@
-# Strategic Biochemical Modeling: Multivariate Analysis & Elastic Net on Wine Flavonoids
+# Wine Flavonoids: Model Selection, Elastic Net and Partial-Correlation Networks
 
-## Project Overview
-This project explores the chemical profile of three wine cultivars using the famous `wine` dataset. Rather than focusing on simple classification, this study aims to reverse-engineer the biochemical ecosystem. By treating **Flavonoids** (a vital parameter for wine structure, aging potential, and antioxidant capacity) as the target variable, this project maps the metabolic drivers and competitive pathways within the wine matrix.
+Multivariate analysis of the chemical profile of three wine cultivars, with **flavanoid
+content** as the response variable. The project compares stepwise model selection under
+AIC and BIC, stabilises estimation under multicollinearity with an **Elastic Net**, and
+maps **conditional (partial) correlations** between compounds as a network.
 
-The ultimate goal is to bridge the gap between advanced statistical inference and industrial operations, translating regression coefficients into actionable business and agronomic levers.
+## Motivation
 
-## Objectives
-* Overcome the limits of univariate analysis by modeling a complex, highly multicollinear biological matrix.
-* Isolate true causal biochemical drivers from spurious correlations using penalized selection criteria (AIC/BIC).
-* Handle structural multicollinearity natively using **Elastic Net Regularization**.
-* Map the conditional dependencies of the system to visualize metabolic competition.
-* Provide data-driven strategic recommendations for winery operations.
+Flavanoids drive wine structure, ageing potential and antioxidant capacity. The chemical
+variables in the `wine` dataset are strongly collinear (e.g. total phenols and
+flavanoids), so marginal correlations are a poor guide to which compounds are associated
+with flavanoid content *once the others are held fixed*. The goal is to separate those
+conditional associations from redundant marginal ones and to translate them into
+hypotheses for vineyard and cellar operations.
 
-## Methodology & Tech Stack
-* **Language & Environment:** R, RStudio
-* **Exploratory Data Analysis (EDA):** Density plots, LOESS curves, and bivariate analysis to identify the baseline additive structure driven by the cultivar.
-* **Model Selection:** Stepwise feature selection comparing pure additive, polynomial, and fully saturated spaces. **BIC (Bayesian Information Criterion)** was favored over AIC to strictly penalize complexity and extract the true chemical backbone of the system.
-* **Regularization:** Implementation of **Elastic Net (L1 + L2 penalty)** to stabilize the model against the endogenous multicollinearity (e.g., the structural co-dependence between Phenols and Flavonoids).
-* **Network Analysis:** Computation of Partial Correlations (Gaussian Graphical Models logic) to map conditional dependencies and mathematically isolate the metabolic competition.
+## Data
 
-## Key Business & Operational Insights
-The statistical output was translated into two main strategic levers for a winery:
-1. **Upstream Strategy (Agronomic Selection):** The choice of the cultivar (specifically `v1`) acts as a biological switch. It establishes an insurmountable baseline advantage in Flavonoid abundance that cannot be replicated downstream.
-2. **Downstream Operations (Winery Extraction):** The negative elasticity of *Non-Flavanoids* reveals a strong metabolic competition. Extraction technologies in the cellar must be calibrated not only to push phenolic extraction but to **actively inhibit** the collateral synthesis of non-flavonoid compounds.
+The classic `wine` dataset (178 samples, 3 cultivars, 13 chemical measurements), loaded
+from the R package [`gRbase`](https://cran.r-project.org/package=gRbase) with `data(wine)`.
+Variables are renamed in the script (`Type`, `Alcohol`, `Malic`, …, `Flavanoids`, …, `Proline`).
 
-## Repository Structure
-* `scripts/`: R scripts containing the data pipeline, EDA, Elastic Net modeling, and Network generation.
-* `report/`: The comprehensive 21-page analytical report (PDF).
-* `presentation/`: The final pitch deck created in LaTeX Beamer, tailored for a managerial/academic audience.
-* `plots/`: High-resolution outputs of the network graphs and diagnostic plots.
+## Method
 
-## How to Run
-1. Clone this repository: `git clone https://github.com/YourUsername/wine-flavonoids-multivariate.git`
-2. Open the R project.
-3. Ensure the required packages are installed (`glmnet`, `MASS`, `car`, `qgraph`, etc.).
-4. Run `main_analysis.R` to reproduce the models and visual outputs.
+1. **Exploratory analysis**: descriptive statistics by cultivar, density and box plots,
+   LOESS curves of each variable against flavanoids, correlation matrices by cultivar.
+2. **Model selection**: linear models for `Flavanoids` compared across three model spaces
+   (additive; additive + selected quadratic terms; all pairwise interactions), each reduced
+   by bidirectional stepwise search under **AIC** (k = 2) and **BIC** (k = log n).
+   BIC is preferred to favour a parsimonious model; the additive BIC model is retained.
+3. **Diagnostics of the selected model**: VIF, coefficient estimates with 95% CIs,
+   fitted vs observed, residual diagnostics and partial-residual plots.
+4. **Elastic Net** (`glmnet`, α = 0.5, 10-fold CV, `lambda.min`) as a regularised
+   check on the stepwise selection under multicollinearity.
+5. **Partial-correlation network**: partial correlations from the inverse correlation
+   matrix (Gaussian graphical model logic), thresholded at |r| > 0.15 and drawn with `qgraph`.
 
----
-*Author: Antoine Peluso* *MSc in AI*
+## Main findings
+
+- **Cultivar is the dominant factor**: it sets a baseline level of flavanoids that the
+  other chemical variables only modulate.
+- **Non-flavanoid phenols enter with a negative conditional association**, consistent with
+  a competition between phenolic pathways.
+
+These are conditional associations in observational data, not causal effects. Read as
+hypotheses for operations: cultivar choice is an upstream lever, and cellar extraction
+could be tuned to favour flavanoid over non-flavanoid phenols. Testing either would
+require controlled experiments.
+
+## Limitations
+
+- 178 observations; stepwise selection is unstable and its p-values are optimistic after selection.
+- The network uses Pearson partial correlations, which assume roughly Gaussian, linear relations.
+- No out-of-sample validation of the selected model.
+
+## Reproduce
+
+Requires R (≥ 4.1) and the packages:
+
+```r
+install.packages(c("gRbase", "ggplot2", "gridExtra", "knitr", "broom", "car",
+                   "ggcorrplot", "qgraph", "dplyr", "tidyr", "reshape2", "glmnet"))
+```
+
+Then run from the repository root:
+
+```bash
+Rscript Vin.R
+```
+
+Figures are written to `grafici_wine/`; model comparison tables are printed to the console.
+
+## Repository structure
+
+```
+Vin.R       # full pipeline: EDA, model selection, Elastic Net, diagnostics, network
+README.md
+```
+
+## Author
+
+Antoine Peluso, MSc in AI Engineering, University of Florence.
